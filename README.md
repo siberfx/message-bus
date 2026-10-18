@@ -1,8 +1,8 @@
 # Message Bus for Laravel
 
 [![Tests](https://github.com/siberfx/message-bus/actions/workflows/tests.yml/badge.svg)](https://github.com/siberfx/message-bus/actions/workflows/tests.yml)
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/siberfx/message-bus.svg)](https://packagist.org/packages/siberfx/message-bus)
-[![License](https://img.shields.io/packagist/l/siberfx/message-bus.svg)](LICENSE.md)
+[![Latest Release](https://img.shields.io/github/v/release/siberfx/message-bus.svg)](https://github.com/siberfx/message-bus/releases)
+[![License](https://img.shields.io/github/license/siberfx/message-bus.svg)](LICENSE.md)
 
 **`siberfx/message-bus`** is a [Symfony Messenger](https://symfony.com/doc/current/messenger.html) style message bus for Laravel, with realtime broadcasting and frontend integrations built in.
 
