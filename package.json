@@ -1,0 +1,63 @@
+{
+  "name": "@siberfx/message-bus",
+  "version": "0.0.1",
+  "description": "Browser client for siberfx/message-bus: dispatch Laravel messages and listen to realtime events from React, Vue, Alpine/Blade or plain JS.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Siberfx <info@siberfx.com>",
+  "homepage": "https://github.com/siberfx/message-bus",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siberfx/message-bus.git"
+  },
+  "main": "./resources/js/index.js",
+  "module": "./resources/js/index.js",
+  "types": "./resources/js/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./resources/js/index.d.ts",
+      "default": "./resources/js/index.js"
+    },
+    "./react": {
+      "types": "./resources/js/react.d.ts",
+      "default": "./resources/js/react.js"
+    },
+    "./vue": {
+      "types": "./resources/js/vue.d.ts",
+      "default": "./resources/js/vue.js"
+    },
+    "./alpine": "./resources/js/alpine.js",
+    "./core": "./resources/js/core.js"
+  },
+  "files": [
+    "resources/js"
+  ],
+  "sideEffects": false,
+  "peerDependencies": {
+    "laravel-echo": ">=1.16",
+    "react": ">=18",
+    "vue": ">=3.3"
+  },
+  "peerDependenciesMeta": {
+    "laravel-echo": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "laravel",
+    "message-bus",
+    "reverb",
+    "echo",
+    "react",
+    "vue",
+    "alpine",
+    "livewire",
+    "realtime"
+  ]
+}
