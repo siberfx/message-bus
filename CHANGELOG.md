@@ -2,6 +2,11 @@
 
 All notable changes to `siberfx/message-bus` will be documented in this file.
 
+## v0.1.0 - 2026-10-18
+
+- README: new "Use cases" section with real-world scenarios (checkout side effects, live chat, long-running exports, unreliable third-party APIs, scheduled follow-ups, live dashboards, multi-tenancy, non-PHP consumers).
+- README: release and license badges now read from GitHub.
+
 ## v0.0.1 - 2026-10-18
 
 Initial release. Requires PHP 8.3+ and Laravel 13.

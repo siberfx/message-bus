@@ -46,30 +46,31 @@ await dispatch({ room_id: roomId, body: 'Hello!' }); // handled, then broadcast 
 1. [Requirements](#requirements)
 2. [Installation](#installation)
 3. [Core concepts](#core-concepts)
-4. [Quick start](#quick-start)
-5. [Messages and handlers](#messages-and-handlers)
-6. [Buses: commands, queries and events](#buses-commands-queries-and-events)
-7. [Middleware](#middleware)
-8. [Stamps](#stamps)
-9. [Transports and routing](#transports-and-routing)
-10. [Consuming messages (workers)](#consuming-messages-workers)
-11. [Retries and the failure transport](#retries-and-the-failure-transport)
-12. [Serialization](#serialization)
-13. [Realtime broadcasting](#realtime-broadcasting)
-14. [Dispatching from the frontend (HTTP endpoint)](#dispatching-from-the-frontend-http-endpoint)
-15. [JavaScript client](#javascript-client)
-16. [React](#react)
-17. [Vue](#vue)
-18. [Livewire](#livewire)
-19. [Blade and Alpine.js](#blade-and-alpinejs)
-20. [Testing](#testing)
-21. [Events](#events)
-22. [Artisan commands](#artisan-commands)
-23. [Configuration reference](#configuration-reference)
-24. [Coming from Symfony Messenger](#coming-from-symfony-messenger)
-25. [Deployment checklist](#deployment-checklist)
-26. [Examples](#examples)
-27. [Security](#security)
+4. [Use cases](#use-cases)
+5. [Quick start](#quick-start)
+6. [Messages and handlers](#messages-and-handlers)
+7. [Buses: commands, queries and events](#buses-commands-queries-and-events)
+8. [Middleware](#middleware)
+9. [Stamps](#stamps)
+10. [Transports and routing](#transports-and-routing)
+11. [Consuming messages (workers)](#consuming-messages-workers)
+12. [Retries and the failure transport](#retries-and-the-failure-transport)
+13. [Serialization](#serialization)
+14. [Realtime broadcasting](#realtime-broadcasting)
+15. [Dispatching from the frontend (HTTP endpoint)](#dispatching-from-the-frontend-http-endpoint)
+16. [JavaScript client](#javascript-client)
+17. [React](#react)
+18. [Vue](#vue)
+19. [Livewire](#livewire)
+20. [Blade and Alpine.js](#blade-and-alpinejs)
+21. [Testing](#testing)
+22. [Events](#events)
+23. [Artisan commands](#artisan-commands)
+24. [Configuration reference](#configuration-reference)
+25. [Coming from Symfony Messenger](#coming-from-symfony-messenger)
+26. [Deployment checklist](#deployment-checklist)
+27. [Examples](#examples)
+28. [Security](#security)
 
 ---
 
@@ -135,6 +136,180 @@ dispatch(msg) ──▶ Prepare ─▶ [Logging] ─▶ Broadcast ─▶ your mi
 | **Realtime driver** | Pushes handled messages to channels: Laravel broadcasting, webhook, log, null or custom. |
 
 Unrouted messages are handled **synchronously**, so you can start simple and move individual messages to async transports later without changing any calling code.
+
+---
+
+## Use cases
+
+The scenarios below show which problems the package is built for and which features each one uses. Every API used here is documented in detail further down.
+
+### Checkout with slow side effects
+
+**Problem:** placing an order must be fast and transactional. Sending the receipt, notifying the warehouse and updating analytics should not slow down the response, and one failing listener must not lose the others.
+
+**How:** `PlaceOrder` runs synchronously and returns the order. Its handler raises an `OrderPlaced` event on the event bus, and routing sends that event to a queue, where each listener runs and retries independently.
+
+```php
+// config/message-bus.php
+'buses' => [
+    'command.bus' => ['middleware' => [ValidationMiddleware::class, DatabaseTransactionMiddleware::class]],
+],
+'routing' => [
+    App\Events\OrderPlaced::class => 'async',
+],
+```
+
+```php
+#[AsMessageHandler]
+final class PlaceOrderHandler
+{
+    public function __invoke(PlaceOrder $command): Order
+    {
+        $order = Order::create([...]);
+
+        MessageBus::bus('event.bus')->dispatch(new OrderPlaced($order->id));
+
+        return $order;
+    }
+}
+
+// In the controller: the order comes back immediately, listeners run on the worker.
+$order = MessageBus::ask(new PlaceOrder($customerId, $items));
+```
+
+If `SendReceipt` fails, only `SendReceipt` is retried. Listeners that already succeeded are not run again.
+
+### Live chat or comments
+
+**Problem:** users post messages from the browser, and everyone else in the room should see them instantly, without writing a controller, a broadcast event and frontend wiring for each action.
+
+**How:** one exposed message is the controller, the validator, the authorization check and the broadcast at once. The frontend dispatches it by alias and listens on the same channel.
+
+```php
+#[AsMessage(alias: 'chat.send', exposed: true)]
+#[BroadcastOn('private-chat.{roomId}', as: 'chat.message.sent', toOthers: true)]
+final class SendChatMessage implements ValidatesPayload, AuthorizesDispatch
+{
+    // constructor, rules() and authorize() as shown in "Dispatching from the frontend"
+}
+```
+
+```js
+await bus.dispatch('chat.send', { room_id: 5, body: 'Hi' });
+bus.listen('private-chat.5', 'chat.message.sent', ({ data }) => append(data));
+```
+
+`toOthers` keeps the sender from receiving their own message twice, and the returned `id` matches the broadcast `id`, so optimistic UI updates can be reconciled. The same message works from [React](#react), [Vue](#vue), [Livewire](#livewire) or [Blade](#blade-and-alpinejs).
+
+### Long-running exports and reports
+
+**Problem:** generating a large CSV or PDF takes minutes. The request should return right away and the user should be told when the file is ready.
+
+**How:** route the message to a worker and broadcast the handler's result when it finishes. Async messages are broadcast **when the worker handles them**, not when they are queued.
+
+```php
+#[AsMessage(alias: 'report.export', exposed: true, transport: 'database')]
+#[BroadcastOn('private-user.{userId}', as: 'export.ready', withResult: true)]
+final class ExportReport
+{
+    public function __construct(public readonly int $userId, public readonly string $period) {}
+}
+
+#[AsMessageHandler]
+final class ExportReportHandler
+{
+    public function __invoke(ExportReport $message): array
+    {
+        $path = app(ReportBuilder::class)->build($message->period);
+
+        return ['url' => Storage::temporaryUrl($path, now()->addHour())];
+    }
+}
+```
+
+```js
+await bus.dispatch('report.export', { user_id: me.id, period: '2026-Q3' }); // 202 Accepted
+bus.once(`private-user.${me.id}`, 'export.ready', ({ result }) => download(result.url));
+```
+
+### Calling unreliable third-party APIs
+
+**Problem:** payment providers, SMS gateways and CRMs time out or rate limit you. Temporary failures should be retried, permanent ones should stop immediately, and nothing should be silently lost.
+
+**How:** route the calls to a transport, let the worker retry with exponential back-off, and mark permanent errors as unrecoverable. Messages that keep failing land in the failure transport, where you can inspect and replay them.
+
+```php
+#[AsMessageHandler]
+final class ChargeCustomerHandler
+{
+    public function __invoke(ChargeCustomer $message): void
+    {
+        try {
+            $this->payments->charge($message->customerId, $message->amount);
+        } catch (CardDeclined $e) {
+            throw new UnrecoverableMessageHandlingException($e->getMessage()); // retrying will not help
+        }
+        // Timeouts and 5xx errors bubble up and are retried: 1s, 2s, 4s…
+    }
+}
+```
+
+```bash
+php artisan message-bus:failed            # what went wrong, and why
+php artisan message-bus:failed:retry --all  # replay once the provider is back
+```
+
+### Scheduled follow-ups
+
+**Problem:** send a reminder one day after signup, or expire a reservation after 15 minutes, without creating a scheduled job for each case.
+
+**How:** dispatch the message with a `DelayStamp`. The transport holds it until it is due.
+
+```php
+MessageBus::dispatch(new ExpireReservation($reservation->id), [DelayStamp::seconds(15 * 60)]);
+MessageBus::dispatch(new SendOnboardingTips($user->id), [DelayStamp::delayUntil(now()->addDay())]);
+```
+
+### Live operations dashboards
+
+**Problem:** an admin dashboard should update as orders, stock levels and sign-ups change, but only for changes that matter.
+
+**How:** messages that implement `ShouldBroadcastLive` decide their own channels, payload and conditions. For values that do not come from a message, publish directly.
+
+```php
+final class StockLevelChanged implements ShouldBroadcastLive
+{
+    public function broadcastOn(): array { return ['private-dashboard']; }
+    public function broadcastWhen(): bool { return $this->qty < 10; } // only low-stock alerts
+}
+
+MessageBus::publish('private-dashboard', 'stats.updated', ['visitors' => $count]);
+```
+
+### Multi-tenant SaaS
+
+**Problem:** a message dispatched for tenant A must be handled in tenant A's context, even when a shared worker picks it up minutes later.
+
+**How:** a middleware stamps the tenant id on dispatch and restores it in the worker. The full code is in [Middleware](#middleware). The same pattern works for locale, the acting user or a request trace id.
+
+### Feeding services that are not written in PHP
+
+**Problem:** a Node gateway, a Go service or an automation tool needs to react to what happens in your Laravel app.
+
+**How:** use the `json` serializer so other languages can read transport payloads, or the `webhook` realtime driver to POST every broadcast to an HMAC-signed endpoint.
+
+```php
+'transports' => [
+    'integration' => ['driver' => 'database', 'serializer' => 'json'],
+],
+'realtime' => [
+    'default' => 'webhook',
+],
+```
+
+### When you do not need it
+
+If your app only queues a few jobs and fires a few events, Laravel's built-in jobs, events and broadcasting are enough. This package pays off when you want one consistent way to dispatch commands, queries and events from both PHP and the browser, decide sync or async per message in config, and get retries, failure handling and realtime updates without writing them for every feature.
 
 ---
 

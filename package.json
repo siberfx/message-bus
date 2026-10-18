@@ -1,6 +1,6 @@
 {
   "name": "@siberfx/message-bus",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Browser client for siberfx/message-bus: dispatch Laravel messages and listen to realtime events from React, Vue, Alpine/Blade or plain JS.",
   "type": "module",
   "license": "MIT",
