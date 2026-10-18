@@ -1,0 +1,16 @@
+<?php
+
+namespace {{ namespace }};
+
+use Siberfx\MessageBus\Attribute\AsMessage;
+use Siberfx\MessageBus\Attribute\BroadcastOn;
+
+#[AsMessage({{ attributeArguments }})]
+#[BroadcastOn('private-{{ alias }}', as: '{{ alias }}')]
+final class {{ class }}
+{
+    public function __construct(
+        //
+    ) {
+    }
+}

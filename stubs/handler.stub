@@ -1,0 +1,17 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ messageNamespace }};
+use Siberfx\MessageBus\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+final class {{ class }}
+{
+    public function __invoke({{ message }} $message): mixed
+    {
+        //
+
+        return null;
+    }
+}

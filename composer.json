@@ -1,0 +1,83 @@
+{
+    "name": "siberfx/message-bus",
+    "description": "A Symfony Messenger inspired message bus for Laravel: buses, middleware, transports, retries, failure transport and realtime broadcasting (Reverb, Pusher, Ably, webhooks) with first-party React, Vue, Livewire and Blade integrations.",
+    "keywords": [
+        "laravel",
+        "messenger",
+        "message-bus",
+        "cqrs",
+        "command-bus",
+        "query-bus",
+        "event-bus",
+        "queue",
+        "reverb",
+        "broadcasting",
+        "realtime",
+        "websockets",
+        "react",
+        "vue",
+        "livewire",
+        "blade"
+    ],
+    "homepage": "https://github.com/siberfx/message-bus",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Siberfx",
+            "email": "info@siberfx.com",
+            "homepage": "https://siberfx.com"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/broadcasting": "^13.0",
+        "illuminate/console": "^13.0",
+        "illuminate/contracts": "^13.0",
+        "illuminate/database": "^13.0",
+        "illuminate/http": "^13.0",
+        "illuminate/queue": "^13.0",
+        "illuminate/support": "^13.0",
+        "illuminate/view": "^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^11.0",
+        "phpunit/phpunit": "^11.5|^12.0"
+    },
+    "suggest": {
+        "laravel/reverb": "First-party WebSocket server used by the default realtime driver.",
+        "pusher/pusher-php-server": "Required to broadcast through Reverb or Pusher.",
+        "ably/ably-php": "Required to broadcast through Ably.",
+        "livewire/livewire": "Enables the Livewire integration (InteractsWithMessageBus trait)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Siberfx\\MessageBus\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Siberfx\\MessageBus\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Siberfx\\MessageBus\\MessageBusServiceProvider"
+            ],
+            "aliases": {
+                "MessageBus": "Siberfx\\MessageBus\\Facades\\MessageBus"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

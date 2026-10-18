@@ -1,0 +1,55 @@
+# Dependencies
+/vendor/
+/node_modules/
+composer.lock
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Tooling / caches
+.phpunit.result.cache
+.phpunit.cache/
+/build/
+/coverage/
+.php-cs-fixer.cache
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+.env
+.env.*
+
+# Local documentation drafts (never published)
+/docs/
+
+# AI assistants, agents & planning artifacts (never published)
+.superpowers/
+superpowers/
+**/superpowers/
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+GEMINI.md
+.gemini/
+.codex/
+.cursor/
+.cursorrules
+.cursorignore
+.windsurf/
+.windsurfrules
+.aider*
+.continue/
+.copilot/
+.github/copilot-instructions.md
+.github/instructions/
+.junie/
+.kiro/
+.roo/
+.clinerules
+.ai/
+.mcp.json
+mcp.json
+plans/
+specs/
